@@ -20,7 +20,7 @@ buildah config --entrypoint '["openssl"]' $container
 # Set metadata
 buildah config --created-by "dmike16"  $container
 buildah config --author "dmike16 at dual-lab.yandex.com" $container
-buildah config --label name=openssl_1.1.1g $container
+buildah config --label name="dlabc/openssl:1.1.1" $container
 
 # Commit the image and remove the container
-buildah commit --rm $container openssl:1.1.1
+buildah commit --rm $container dlabc/openssl:1.1.1
