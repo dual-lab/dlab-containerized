@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -Eeuo pipefail
+
+# Build image from apline 3.12
+container=$(buildah from alpine:3.12)
+
+# Remove working container on error
+trap "buildah rm $container" ERR
+
+# Install openssl 1.1.1g
+buildah run $container -- apk update
+buildah run $container -- apk add --no-cache "openssl>=1.1.1g-r0"
+#Remove apk cache
+buildah run $container -- rm -rf /var/cache/apk/*
+
+# Set entrypoint to openssl
+buildah config --entrypoint '["openssl"]' $container
+
+# Set metadata
+buildah config --created-by "dmike16"  $container
+buildah config --author "dmike16 at dual-lab.yandex.com" $container
+buildah config --label name=openssl_1.1.1g $container
+
+# Commit the image and remove the container
+buildah commit --rm $container openssl:1.1.1
