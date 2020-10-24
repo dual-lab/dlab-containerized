@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -Eeuo pipefail
+
+# Build image from apline 3.12
+container=$(buildah from prom/prometheus)
+
+# Remove working container on error
+trap "buildah rm $container" ERR
+
+# Copy prometheus config yaml
+buildah copy $container ./prometheus.yml /etc/prometheus/prometheus.yml
+
+# Set metadata
+buildah config --created-by "dmike16"  $container
+buildah config --author "dmike16 at dual-lab.yandex.com" $container
+buildah config --label name="dlabc/prometheus-pi" $container
+
+# Commit the image and remove the container
+buildah commit --rm $container dlabc/prometheus-pi
