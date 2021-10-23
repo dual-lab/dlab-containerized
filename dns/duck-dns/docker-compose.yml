@@ -1,0 +1,16 @@
+version: "2.1"
+services:
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:amd64-latest
+    container_name: duckdns
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Rome
+      - SUBDOMAINS=sub1,sub1 # insert yout duck dns subdomains
+      - TOKEN=<your token>
+      - LOG_FILE=true
+    volumes:
+      - /path/to/config:/config
+    restart: unless-stopped
+
