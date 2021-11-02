@@ -21,3 +21,18 @@ services:
     cap_add:
       - NET_ADMIN
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pihole.rule=Host(`pihole.local.dualab.duckdns.org`)"
+      - "traefik.http.routers.pihole.service=pihole@docker"
+      - "traefik.http.routers.pihole.middlewares=pihole-admin-prefix@docker"
+      - "traefik.http.routers.pihole.entrypoints=websecure"
+      - "traefik.http.routers.pihole.tls=true"
+      - "traefik.http.routers.pihole.tls.certresolver=letduckdns"
+      - "traefik.http.routers.pihole.tls.domains[0].main=local.dualab.duckdns.org"
+      - "traefik.http.routers.pihole.tls.domains[0].sans=*.local.dualab.duckdns.org"
+      - "traefik.http.services.pihole.loadbalancer.server.port=8080"
+      - "traefik.tcp.routers.pihole.middlewares=pihole-vpn-tunnel-ips@docker"
+      - "traefik.tcp.middlewares.pihole-vpn-tunnel-ips.ipwhitelist.sourcerange=10.8.0.0/24"
+      - "traefik.http.middlewares.pihole-admin-prefix.addprefix.prefix=/admin"
+

@@ -1,0 +1,64 @@
+version: "3.9"
+
+secrets:
+  duck_dns_token:
+    file: "./secrets/duck_dns_token.secret"
+
+networks:
+  traefik-proxy:
+    external: true
+  docker-socket:
+    name: "docker-socket"
+  
+services:
+  docker-socket-proxy:
+    image: "tecnativa/docker-socket-proxy"
+    enviroment:
+      CONTAINERS: 1
+    networks:
+      - "docker-socket"
+    ports:
+      - 2375
+    restart: "unless-stopped"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  traefik:
+    # Official latest traefik images
+    image: "traefik:v2.5.3"
+    container_name: "traefik"
+    restart: "unless-stopped"
+    # traefik container networks
+    networks:
+      - "traefik-proxy"
+      - "docker-socket"
+    environment:
+    # DNS certificate challange configuration 
+      - "DUCKDNS_TOKEN_FILE=/run/secrets/duck_dns_token"
+    ports:
+      # expose http port
+      - "80:80"
+      # expose https port
+      - "443:443"
+      # expose web UI port
+      - "8443:8080"
+    secrets:
+      - "duck_dns_token"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "./traefik.toml:/traefik.toml:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.local.dualab.duckdns.org`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=letduckdns"
+      - "traefik.http.routers.dashboard.tls.domains[0].main=local.dualab.duckdns.org"
+      - "traefik.http.routers.dashboard.tls.domains[0].sans=*.local.dualab.duckdns.org"
+      - "traefik.tcp.routers.dashboard.middlewares=dashboard-vpn-tunnel-ips@docker"
+      - "traefik.tcp.middlewares.dashboard-vpn-tunnel-ips.ipwhitelist.sourcerange=10.8.0.0/24"
+      # Change user and password!!!
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=user:$$apr1$$7b2GslVu$$6J1SizWkfZIc1vKLuAQL50"
+
