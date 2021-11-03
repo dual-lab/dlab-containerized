@@ -13,12 +13,12 @@ networks:
 services:
   docker-socket-proxy:
     image: "tecnativa/docker-socket-proxy"
-    enviroment:
+    environment:
       CONTAINERS: 1
     networks:
       - "docker-socket"
-    ports:
-      - 2375
+    expose:
+      - "2375"
     restart: "unless-stopped"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -44,11 +44,14 @@ services:
       - "8443:8080"
     secrets:
       - "duck_dns_token"
+    dns:
+      - 1.1.1.1
     volumes:
       - "./letsencrypt:/letsencrypt"
       - "./traefik.toml:/traefik.toml:ro"
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
       - "traefik.http.routers.dashboard.rule=Host(`dashboard.local.dualab.duckdns.org`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
@@ -56,7 +59,7 @@ services:
       - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.tls.certresolver=letduckdns"
       - "traefik.http.routers.dashboard.tls.domains[0].main=local.dualab.duckdns.org"
-      - "traefik.http.routers.dashboard.tls.domains[0].sans=*.local.dualab.duckdns.org"
+      - ",traefiktraefik.http.routers.dashboard.tls.domains[0].sans=*.local.dualab.duckdns.org"
       - "traefik.tcp.routers.dashboard.middlewares=dashboard-vpn-tunnel-ips@docker"
       - "traefik.tcp.middlewares.dashboard-vpn-tunnel-ips.ipwhitelist.sourcerange=10.8.0.0/24"
       # Change user and password!!!

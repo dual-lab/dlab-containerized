@@ -7,7 +7,8 @@ services:
       - "53:53/tcp"
       - "53:53/udp"
       - "67:67/udp"
-      - "8080:80/tcp"
+    expose:
+      - "80"
     environment:
       TZ: 'Europe/Rome'
       PIHOLE_DNS_: "1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001"
@@ -18,11 +19,14 @@ services:
     volumes:
       - './etc-pihole/:/etc/pihole/'
       - './etc-dnsmasq.d/:/etc/dnsmasq.d/'
+    networks:
+      - traefik-proxy
     cap_add:
       - NET_ADMIN
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
       - "traefik.http.routers.pihole.rule=Host(`pihole.local.dualab.duckdns.org`)"
       - "traefik.http.routers.pihole.service=pihole@docker"
       - "traefik.http.routers.pihole.middlewares=pihole-admin-prefix@docker"
@@ -31,8 +35,12 @@ services:
       - "traefik.http.routers.pihole.tls.certresolver=letduckdns"
       - "traefik.http.routers.pihole.tls.domains[0].main=local.dualab.duckdns.org"
       - "traefik.http.routers.pihole.tls.domains[0].sans=*.local.dualab.duckdns.org"
-      - "traefik.http.services.pihole.loadbalancer.server.port=8080"
+      - "traefik.http.services.pihole.loadbalancer.server.port=80"
       - "traefik.tcp.routers.pihole.middlewares=pihole-vpn-tunnel-ips@docker"
       - "traefik.tcp.middlewares.pihole-vpn-tunnel-ips.ipwhitelist.sourcerange=10.8.0.0/24"
       - "traefik.http.middlewares.pihole-admin-prefix.addprefix.prefix=/admin"
+
+networks:
+  traefik-proxy:
+    external: true
 

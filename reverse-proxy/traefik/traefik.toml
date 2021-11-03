@@ -1,0 +1,30 @@
+[api]
+  dashboard = true
+  debug = true
+
+[providers.docker]
+  exposedByDefault = false
+  endpoint = "tcp://docker-socket-proxy:2375"
+  network = "docker-socket"
+
+[serversTransport]
+  insecureSkipVerify = true
+
+[entryPoints]
+  [entryPoints.web]
+    address = ":80"
+  [entryPoints.web.http]
+    [entryPoints.web.http.redirections]
+      [entryPoints.web.http.redirections.entryPoint]
+        to = "websecure"
+        scheme = "https"
+  [entryPoints.websecure]
+    address = ":443"
+    [entryPoints.websecure.forwardedHeaders]
+      trustedIPs = ["10.8.0.0/24"]
+
+[certificatesResolvers.letduckdns.acme]
+  email = "example@email.com"
+  storage = "/letsencrypt/acme.json"
+  [certificatesResolvers.letduckdns.acme.dnsChallenge]
+    provider = "duckdns"
