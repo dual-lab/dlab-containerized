@@ -1,0 +1,72 @@
+version: "3.9"
+
+secrets:
+  nextcloud_pswd:
+    file: ./nextcloud_password
+  maria_root_pswd:
+    file: ./maria_root_pswd
+  maria_pswd:
+    file: ./maria_pswd
+
+networks:
+  traefik-proxy:
+    external: true
+  next-cloud-maria:
+    name: "next-cloud-maria"
+
+services:
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud
+    container_name: nextcloud
+    enviroment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Rome
+      - FILE__PASSWORD=/run/secrets/nextcloud_pswd
+    volumes:
+      - /path/to/appdata:/config
+      - /path/to/data:/data
+    expose:
+      - "443"
+    networks:
+      - traefik-proxy
+      - next-cloud-maria
+    restart: unless-stopped
+    secrets:
+      - nextcloud_pswd
+    depend_on:
+      - maria-db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.local.dualab.duckdns.org`)"
+      - "traefik.http.routers.nextcloud.service=pihole@docker"
+      - "traefik.http.routers.nextcloud.middlewares=pihole-admin-prefix@docker"
+      - "traefik.http.routers.nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud.tls=true"
+      - "traefik.http.routers.nextcloud.tls.certresolver=letduckdns"
+      - "traefik.http.routers.nextcloud.tls.domains[0].main=local.dualab.duckdns.org"
+      - "traefik.http.routers.nextcloud.tls.domains[0].sans=*.local.dualab.duckdns.org"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=443"
+      - "traefik.http.services.nextcloud.loadbalancer.server.scheme=https"
+      - "traefik.tcp.routers.nextcloud.middlewares=nextcloud-vpn-tunnel-ips@docker"
+      - "traefik.tcp.middlewares.nextcloud-vpn-tunnel-ips.ipwhitelist.sourcerange=10.8.0.0/24"
+  
+  maria-db:
+    image: maria
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - /path/to/maria_data:/var/lib/mysql
+    environment:
+      - MYSQL_USER=nextcloud
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/maria_root_pswd
+      - MYSQL_PASSWORD_FILE=/run/secrets/maria_pswd
+    networks:
+      - next-cloud-maria
+    expose:
+      - "3306"
+    secrets:
+      - maria_root_pswd
+      - maria_pswd
