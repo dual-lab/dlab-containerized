@@ -18,7 +18,7 @@ services:
   nextcloud:
     image: lscr.io/linuxserver/nextcloud
     container_name: nextcloud
-    enviroment:
+    environment:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Rome
@@ -31,17 +31,19 @@ services:
     networks:
       - traefik-proxy
       - next-cloud-maria
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     restart: unless-stopped
     secrets:
       - nextcloud_pswd
-    depend_on:
+    depends_on:
       - maria-db
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-proxy"
       - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.local.dualab.duckdns.org`)"
-      - "traefik.http.routers.nextcloud.service=pihole@docker"
-      - "traefik.http.routers.nextcloud.middlewares=pihole-admin-prefix@docker"
+      - "traefik.http.routers.nextcloud.service=nextcloud@docker"
       - "traefik.http.routers.nextcloud.entrypoints=websecure"
       - "traefik.http.routers.nextcloud.tls=true"
       - "traefik.http.routers.nextcloud.tls.certresolver=letduckdns"
@@ -50,12 +52,16 @@ services:
       - "traefik.http.services.nextcloud.loadbalancer.server.port=443"
       - "traefik.http.services.nextcloud.loadbalancer.server.scheme=https"
       - "traefik.tcp.routers.nextcloud.middlewares=nextcloud-vpn-tunnel-ips@docker"
+      - "traefik.http.routers.nextcloud.middlewares=nextcloud-header@docker"
       - "traefik.tcp.middlewares.nextcloud-vpn-tunnel-ips.ipwhitelist.sourcerange=10.8.0.0/24"
+      - "traefik.http.middlewares.nextcloud-header.headers.stsSeconds=15552000"
+      - "traefik.http.middlewares.nextcloud-header.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.nextcloud-header.headers.stsPreload=true"
   
   maria-db:
-    image: maria
+    image: mariadb:focal
     restart: unless-stopped
-    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    command: --transaction-isolation=READ-COMMITTED -log-bin=mysqld-bin --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
     volumes:
       - /path/to/maria_data:/var/lib/mysql
     environment:
