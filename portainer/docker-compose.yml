@@ -1,0 +1,57 @@
+version: "3.9"
+
+
+networks:
+  traefik-proxy:
+    external: true
+  docker-socket:
+    external: true
+
+volumes:
+  portainer_data:
+    external: true
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    volumes:
+      - portainer_data:/data
+    expose:
+      - "8000"
+      - "9443"
+    networks:
+      - traefik-proxy
+      - docker-socket
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+        # Frontend
+      - "traefik.http.routers.portainer.rule=Host(`portainer.local.dualab.duckdns.org`)"
+      - "traefik.http.routers.portainer.service=portainer@docker"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certresolver=letduckdns"
+      - "traefik.http.routers.portainer.tls.domains[0].main=local.dualab.duckdns.org"
+      - "traefik.http.routers.portainer.tls.domains[0].sans=*.local.dualab.duckdns.org"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9443"
+      - "traefik.http.services.portainer.loadbalancer.server.scheme=https"
+      - "traefik.tcp.routers.portainer.middlewares=portainer-vpn-tunnel-ips@docker"
+      - "traefik.tcp.middlewares.portainer-vpn-tunnel-ips.ipwhitelist.sourcerange=10.8.0.0/24"
+       # Edge
+      - "traefik.http.routers.portainer-edge.rule=Host(`portainer-edge.local.dualab.duckdns.org`)"
+      - "traefik.http.routers.portainer-edge.service=portainer-edge@docker"
+      - "traefik.http.routers.portainer-edge.entrypoints=websecure"
+      - "traefik.http.routers.portainer-edge.tls=true"
+      - "traefik.http.routers.portainer-edge.tls.certresolver=letduckdns"
+      - "traefik.http.routers.portainer-edge.tls.domains[0].main=local.dualab.duckdns.org"
+      - "traefik.http.routers.portainer-edge.tls.domains[0].sans=*.local.dualab.duckdns.org"
+      - "traefik.http.services.portainer-edge.loadbalancer.server.port=8000"
+      - "traefik.http.services.portainer-edge.loadbalancer.server.scheme=https"
+      - "traefik.tcp.routers.portainer-edge.middlewares=portainer-edge-vpn-tunnel-ips@docker"
+      - "traefik.tcp.middlewares.portainer-edge-vpn-tunnel-ips.ipwhitelist.sourcerange=10.8.0.0/24"
+
