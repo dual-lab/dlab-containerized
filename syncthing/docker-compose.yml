@@ -1,0 +1,47 @@
+version: "3.9"
+
+
+networks:
+  traefik-proxy:
+    external: true
+
+services:
+  syncthing:
+    image: lscr.io/linuxserver/syncthing
+    container_name: syncthing
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Rome
+    volumes:
+      - /path/to/appdata/config:/config
+      - /path/to/data1:/data1
+      - /path/to/data2:/data2
+    expose:
+      - "8384"
+    ports:
+      - 22000:22000/tcp
+      - 22000:22000/udp
+      - 21027:21027/udp
+    networks:
+      - traefik-proxy
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+        # Frontend
+      - "traefik.http.routers.syncthing.rule=Host(`syncthing.local.dualab.duckdns.org`)"
+      - "traefik.http.routers.syncthing.service=syncthing@docker"
+      - "traefik.http.routers.syncthing.entrypoints=websecure"
+      - "traefik.http.routers.syncthing.tls=true"
+      - "traefik.http.routers.syncthing.tls.certresolver=letduckdns"
+      - "traefik.http.routers.syncthing.tls.domains[0].main=local.dualab.duckdns.org"
+      - "traefik.http.routers.syncthing.tls.domains[0].sans=*.local.dualab.duckdns.org"
+      - "traefik.http.services.syncthing.loadbalancer.server.port=8384"
+      - "traefik.http.services.syncthing.loadbalancer.server.scheme=https"
+      - "traefik.tcp.routers.syncthing.middlewares=syncthing-vpn-tunnel-ips@docker"
+      - "traefik.tcp.middlewares.syncthing-vpn-tunnel-ips.ipwhitelist.sourcerange=10.8.0.0/24"
+
