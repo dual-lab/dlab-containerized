@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "duckdns-k8s.fullname" . }}-secret
+  namespace: {{ include "duckdns-k8s.name" . }}
+  labels:
+    {{- include "duckdns-k8s.labels" . | nindent 4 }}
+type: Opaque
+data:
+  {{- with .Values.environment }}
+  PUID: {{ .puid | toString | b64enc }}
+  PGID: {{ .pgid | toString | b64enc }}
+  TZ: {{ .tz | b64enc }}
+  SUBDOMAINS: {{ .subdomains | b64enc }}
+  TOKEN: {{ .token | b64enc }}
+  LOG_FILE: {{ .log | toString | b64enc }}
+  {{- end }}
