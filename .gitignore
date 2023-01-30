@@ -1,3 +1,8 @@
 # secret files
 *.secret.*
 settings.json
+k8s/admit-tag-image/chart/.cert
+
+# target directories
+build/
+.initialize
